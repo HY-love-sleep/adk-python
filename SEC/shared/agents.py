@@ -1,58 +1,16 @@
+"""Shared sub-agents for SEC package
+
+These agents can be reused across different orchestration patterns.
+"""
+
 from __future__ import annotations
 
-from google.adk.agents import Agent
-from google.adk.agents import SequentialAgent
-from google.adk.tools import MCPToolset
-from google.adk.tools.mcp_tool import SseConnectionParams
-
-# todo:try gemini-2.5-flash
-sec_collector_mcp_tools = MCPToolset(
-    connection_params=SseConnectionParams(
-        url="http://172.16.22.18:8081/mcp/sec-collector-management/sse",
-        headers={
-            'Accept': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-        },
-        timeout=50.0,
-        sse_read_timeout=120.0,
-    ),
-
-    tool_filter=[
-        "addCollectionTask",
-        "getPageOfCollectionTask",
-        "openCollectionTask",
-        "executeCollectionTask"
-    ]
-)
-
-sec_classify_mcp_tools = MCPToolset(
-    connection_params=SseConnectionParams(
-        url="http://172.16.22.18:8081/mcp/sec-classify-level/sse",
-        headers={
-            'Accept': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-        },
-        timeout=50.0,
-        sse_read_timeout=120.0,
-    ),
-
-    tool_filter=[
-        "getMetaDataAllList",
-        "executeClassifyLevel",
-        "getClassifyLevelResult"
-    ]
-)
-
-# Add wait tool
-def wait_for_task_sync(seconds: int = 10) -> str:
-    """Synchronous wait tool for background task processing"""
-    import time
-    time.sleep(seconds)
-    return f"Waited for {seconds} seconds"
+from google.adk.agents import LlmAgent
+from .mcp_tools import sec_collector_mcp_tools, sec_classify_mcp_tools, wait_for_task_sync
 
 
-# Data Collection Agent
-colt_agent = Agent(
+# Data Collection Agent - Reusable across different orchestration patterns
+colt_agent = LlmAgent(
     name="colt_agent",
     model="gemini-2.0-flash",
     description="Handles business processes related to data collection services",
@@ -77,9 +35,8 @@ colt_agent = Agent(
     ],
 )
 
-# Classification and Grading Agent
-# todo: Here the position is temporarily set to 0, and then needs to be set to 4, and add field‘s classifyLevel result
-clft_agent = Agent(
+# Classification and Grading Agent - Reusable across different orchestration patterns
+clft_agent = LlmAgent(
     name="clft_agent",
     model="gemini-2.0-flash",
     description="Handles business processes related to classification and grading services",
@@ -101,7 +58,7 @@ clft_agent = Agent(
                 After obtaining the classification and grading results, you must display the complete results in detail to the user. Output in the following format:
                 
                 📊 Database Name: [database_name]
-                ️ Classification and Grading Results Summary:
+                🏷️ Classification and Grading Results Summary:
                 
                 📋 Table Name: [table_name]
                 - 🎯 Classification Level: [classification_level]
@@ -116,15 +73,5 @@ clft_agent = Agent(
     tools=[
         sec_classify_mcp_tools,
         wait_for_task_sync,
-    ],
-)
-
-# Root Agent Definition
-root_agent = SequentialAgent(
-    name="sec_agent",
-    description="Data security classification and grading security assistant responsible for coordinating the complete process of data collection and classification grading",
-    sub_agents=[
-        colt_agent,
-        clft_agent
     ],
 )
