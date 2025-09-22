@@ -9,7 +9,12 @@ from .mcp_tools import (
     sec_classify_mcp_tools,
     wait_for_task_sync,
 )
-from .agents import colt_agent, clft_agent
+from .agents import (
+    colt_agent,
+    clft_agent,
+    make_colt_agent,
+    make_clft_agent,
+)
 
 __all__ = [
     "sec_collector_mcp_tools",
@@ -17,4 +22,6 @@ __all__ = [
     "wait_for_task_sync",
     "colt_agent",
     "clft_agent",
+    "make_colt_agent",
+    "make_clft_agent",
 ]

@@ -9,12 +9,14 @@ from google.adk.agents import LlmAgent
 from .mcp_tools import sec_collector_mcp_tools, sec_classify_mcp_tools, wait_for_task_sync
 
 
-# Data Collection Agent - Reusable across different orchestration patterns
-colt_agent = LlmAgent(
-    name="colt_agent",
-    model="gemini-2.0-flash",
-    description="Handles business processes related to data collection services",
-    instruction="""
+def make_colt_agent(name: str = "colt_agent") -> LlmAgent:
+  return LlmAgent(
+      name=name,
+      model="gemini-2.0-flash",
+      description=(
+          "Handles business processes related to data collection services"
+      ),
+      instruction="""
                 You are a data collection expert responsible for processing user requests related to data collection services and calling corresponding tools for processing.
                 
                 You need to execute the following steps:
@@ -29,21 +31,27 @@ colt_agent = LlmAgent(
                 - You can wait 10 seconds before returning the dbName
                 - Final output format: Please return JSON format containing dbName, for example: "dbName": "actual_database_name"
                 """,
-    tools=[
-        sec_collector_mcp_tools,
-        wait_for_task_sync,
-    ],
-)
+      tools=[
+          sec_collector_mcp_tools,
+          wait_for_task_sync,
+      ],
+      output_key="dbName",
+  )
 
-# Classification and Grading Agent - Reusable across different orchestration patterns
-clft_agent = LlmAgent(
-    name="clft_agent",
-    model="gemini-2.0-flash",
-    description="Handles business processes related to classification and grading services",
-    instruction="""
+
+def make_clft_agent(name: str = "clft_agent") -> LlmAgent:
+  return LlmAgent(
+      name=name,
+      model="gemini-2.0-flash",
+      description=(
+          "Handles business processes related to classification and grading services"
+      ),
+      instruction="""
                 You are a classification and grading expert responsible for processing user requests related to classification and grading services and calling corresponding tools for processing.
                 
-                Your input is the dbName passed from the previous agent. You need to:
+                Your input dbName is available at state['dbName'] produced by the previous step.
+                If state['dbName'] is missing, ask the user for the database name first, then proceed.
+                You need to:
                 1. Query the metadata list in full based on dbName to filter out the corresponding dbId by calling getMetaDataAllList;
                 2. After obtaining the dbId, perform classification and grading tagging on this database by calling executeClassifyLevel;
                 3. After tagging is completed, query the classification and grading results based on dbName and tbName by calling getClassifyLevelResult;
@@ -70,8 +78,13 @@ clft_agent = LlmAgent(
                 
                 Important: Don't just say "classification completed", you must display specific classification result data!
                 """,
-    tools=[
-        sec_classify_mcp_tools,
-        wait_for_task_sync,
-    ],
-)
+      tools=[
+          sec_classify_mcp_tools,
+          wait_for_task_sync,
+      ],
+  )
+
+# Backward-compatible singletons (optional use). Not recommended when composing
+# multiple parents; prefer the factory functions above.
+colt_agent = make_colt_agent("colt_agent_singleton")
+clft_agent = make_clft_agent("clft_agent_singleton")
